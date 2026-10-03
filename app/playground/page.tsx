@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
   Badge, Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface,
-  DialogTitle, Field, FluentProvider, SearchBox, Select, Tab, TabList, Textarea,
+  DialogTitle, Field, FluentProvider, SearchBox, Select, Tab, TabList, Textarea, Tooltip,
   SSRProvider, webDarkTheme, type Theme,
 } from "@fluentui/react-components";
 import {
-  Add24Regular, ArrowRight20Regular, ArrowUpRight20Regular, CheckmarkCircle20Regular,
+  Add24Regular, ArrowReset20Regular, ArrowRight20Regular, ArrowUpRight20Regular, CheckmarkCircle20Regular,
   BotSparkle24Regular, Delete20Regular, Dismiss20Regular, Info20Regular, Library24Regular,
   Warning20Regular,
 } from "@fluentui/react-icons";
@@ -250,7 +250,12 @@ export default function PlaygroundPage() {
           <Tab id="evidence-tab" value="evidence" disabled={!result}>Evidence {result ? `(${result.assessment.claims.length})` : ""}</Tab>
           <Tab id="trace-tab" value="trace" disabled={!result}>Trace</Tab>
         </TabList>
-        <div className="workspace-actions"><span className="catalog-label">{result ? result.mode === "sanity" && !stale ? "Live evidence retrieved" : "Catalog-only result" : "Ready to check"}</span><Button appearance="subtle" size="small" onClick={resetRack}>Reset <span className="reset-detail">example</span></Button></div>
+        <div className="workspace-actions">
+          <span className="catalog-label">{result ? result.mode === "sanity" && !stale ? "Live evidence retrieved" : "Catalog-only result" : "Ready to check"}</span>
+          <Tooltip content="Reset example rack" relationship="label" positioning="below-end" withArrow>
+            <Button className="reset-rack-button" appearance="subtle" size="small" icon={<ArrowReset20Regular />} aria-label="Reset example rack" onClick={resetRack} />
+          </Tooltip>
+        </div>
       </div>
       <div className="live-notice" role="status">{notice}</div>
       {removedModule && <div className="undo-notice" role="status">

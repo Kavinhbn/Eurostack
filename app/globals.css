@@ -954,6 +954,7 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
 .fluent-root .view-bar .fui-Tab { min-height: 54px; padding-block: 10px; }
 .workspace-actions { display: flex; align-items: center; gap: 12px; }
 .workspace-actions .fui-Button { color: #cbc7bf; }
+.workspace-actions .reset-rack-button { min-width: 32px; width: 32px; height: 32px; padding: 0; }
 .fluent-root .planner-layout { grid-template-columns: minmax(620px, 1.16fr) minmax(420px, .84fr); gap: 18px; }
 .fluent-root .rack-panel, .fluent-root .agent-shell { border-radius: 16px; }
 .fluent-root .rack-panel { background: #171918; border-color: #373a38; }
@@ -1102,7 +1103,6 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
   .fluent-root .view-bar { align-items: flex-end; }
   .workspace-actions .catalog-label { display: none; }
   .workspace-actions .fui-Button { white-space: nowrap; }
-  .reset-detail { display: none; }
   .fluent-root .panel-heading { align-items: flex-start; padding-inline: 16px; }
   .fluent-root .capacity-overview { margin-inline: 16px; }
   .rack-rail-wrap { padding-inline: 16px; }
