@@ -141,7 +141,6 @@ export default function PlaygroundPage() {
     setModuleIds((current) => [...current, module.id]);
     setRemovedModule(null);
     setNotice(module.name + " added to Row A.");
-    setLibraryOpen(false);
     setError("");
   }
 
@@ -248,8 +247,27 @@ export default function PlaygroundPage() {
           <section className="rack-panel" aria-labelledby="row-title">
             <div className="panel-heading">
               <div className="row-title"><span className="row-symbol" aria-hidden="true"><Library24Regular /></span><div><h2 id="row-title">Row A</h2><p>3U Eurorack <span>/</span> {CASE.hp} HP</p></div></div>
-              <Button appearance="secondary" icon={<Add24Regular />} onClick={() => setLibraryOpen(true)} disabled={moduleIds.length >= 32}>Add module</Button>
+              <Button appearance="secondary" icon={libraryOpen ? <Dismiss20Regular /> : <Add24Regular />} onClick={() => setLibraryOpen((current) => !current)} aria-expanded={libraryOpen} aria-controls="inline-module-library">{libraryOpen ? "Close library" : "Add module"}</Button>
             </div>
+
+            {libraryOpen && <section id="inline-module-library" className="inline-module-library" aria-labelledby="module-library-title">
+              <header className="inline-library-header">
+                <div className="inline-library-title"><Library24Regular aria-hidden="true" /><div><h3 id="module-library-title">Browse modules</h3><p>Add modules without leaving your rack.</p></div></div>
+                <SearchBox className="library-search" aria-label="Search modules" value={query} onChange={(_, data) => setQuery(data.value)} placeholder="Search name, maker or function" />
+                <Button appearance="subtle" size="small" icon={<Dismiss20Regular />} aria-label="Close module library" onClick={() => setLibraryOpen(false)} />
+              </header>
+              {filtered.length ? <div className="inline-library-track">
+                {filtered.map((module) => {
+                  const quantity = moduleIds.filter((id) => id === module.id).length;
+                  return <article key={module.id} className="inline-library-module">
+                    <div><span className="source-maker">{module.maker}</span><h3>{module.name}</h3></div>
+                    <dl><div><dt>Width</dt><dd>{module.hp} HP</dd></div><div><dt>Depth</dt><dd>{module.depthMm} mm</dd></div><div><dt>+12V</dt><dd>{module.plus12Ma} mA</dd></div></dl>
+                    <footer><span>{quantity ? quantity + " in row" : "Not selected"}</span><Button appearance="secondary" size="small" icon={<Add24Regular />} onClick={() => add(module)} disabled={moduleIds.length >= 32} aria-label={"Add " + module.name}>{quantity ? "Add another" : "Add"}</Button></footer>
+                  </article>;
+                })}
+              </div> : <div className="search-empty"><h3>No matching modules</h3><p>Try another name, manufacturer or function.</p><Button appearance="subtle" onClick={() => setQuery("")}>Clear search</Button></div>}
+              {moduleIds.length >= 32 && <p className="inline-library-limit" role="status">The 32-module planning limit has been reached.</p>}
+            </section>}
 
             <div className="capacity-overview">
               <div className="capacity-label"><span><strong>{plan.totals.hp}</strong> of {CASE.hp} HP used</span><span className={available < 0 ? "text-danger" : "capacity-free"}>{available < 0 ? Math.abs(available) + " HP over capacity" : available + " HP available"}</span></div>
@@ -403,19 +421,6 @@ export default function PlaygroundPage() {
         </div> : <div className="empty-trace"><Info20Regular /><h3>No check run yet</h3><p>Nothing simulated here. Your next run will appear in this view.</p><Button appearance="secondary" onClick={() => setView("planner")}>Return to planner</Button></div>}
       </section>}
     </main>
-
-    <Dialog open={libraryOpen} onOpenChange={(_, data) => setLibraryOpen(data.open)}>
-      <DialogSurface className="app-dialog library-dialog"><DialogBody>
-        <DialogTitle action={<Button appearance="subtle" icon={<Dismiss20Regular />} aria-label="Close library" onClick={() => setLibraryOpen(false)} />}>Module library</DialogTitle>
-        <DialogContent><p className="dialog-description">Find a module for Row A. You can add more than one of the same module.</p>
-          <SearchBox className="library-search" aria-label="Search modules" value={query} onChange={(_, data) => setQuery(data.value)} placeholder="Search name, maker or function" />
-          <div className="library-list">{filtered.map((module) => <article key={module.id} className="library-row"><div><span className="source-maker">{module.maker}</span><h3>{module.name}</h3><p>{module.hp} HP <span>/</span> {module.depthMm} mm <span>/</span> {module.plus12Ma} mA on +12V</p></div><Button appearance="secondary" icon={<Add24Regular />} onClick={() => add(module)} disabled={moduleIds.length >= 32} aria-label={"Add " + module.name}>Add</Button></article>)}</div>
-          {!filtered.length && <div className="search-empty"><h3>No matching modules</h3><p>Try another name, manufacturer or function.</p><Button appearance="subtle" onClick={() => setQuery("")}>Clear search</Button></div>}
-          {moduleIds.length >= 32 && <p role="status">The 32-module planning limit has been reached.</p>}
-        </DialogContent>
-        <DialogActions><Button appearance="secondary" onClick={() => setLibraryOpen(false)}>Done</Button></DialogActions>
-      </DialogBody></DialogSurface>
-    </Dialog>
 
     <Dialog open={Boolean(selectedModule)} onOpenChange={(_, data) => { if (!data.open) setDetailIndex(null); }}>
       <DialogSurface className="app-dialog"><DialogBody>

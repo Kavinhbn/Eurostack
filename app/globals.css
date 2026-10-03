@@ -441,7 +441,6 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
 .app-dialog .fui-DialogActions { gap: 12px; }
 .app-dialog .fui-Button { min-height: 42px; font-size: 14px; }
 .dialog-description { color: #bebcb6; font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
-.library-dialog { width: min(700px, calc(100vw - 32px)) !important; max-width: 700px !important; }
 .library-search { width: 100%; max-width: none !important; min-height: 46px; margin-bottom: 18px; }
 .library-list { display: grid; }
 .library-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--rw-border); }
@@ -451,6 +450,57 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
 .library-row p { color: var(--rw-muted); font-size: 14px; margin-top: 8px; }
 .library-row p span { margin: 0 6px; color: #777b7f; }
 .library-row > .fui-Button { flex-shrink: 0; }
+.inline-module-library {
+  margin: 0 24px 24px;
+  overflow: hidden;
+  border: 1px solid #464946;
+  border-radius: 14px;
+  background: #141615;
+  animation: decision-arrive 220ms cubic-bezier(.16, 1, .3, 1) both;
+}
+.inline-library-header {
+  display: grid;
+  grid-template-columns: minmax(220px, .75fr) minmax(240px, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid #353835;
+}
+.inline-library-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.inline-library-title > svg { flex: 0 0 auto; color: var(--rw-accent); }
+.inline-library-title h3 { color: #f2eee7; font-size: 16px; font-weight: 650; }
+.inline-library-title p { margin-top: 3px; color: #9fa19d; font-size: 12px; }
+.inline-library-header .library-search { min-height: 40px; margin: 0; }
+.inline-library-header > .fui-Button { min-width: 40px; min-height: 40px; }
+.inline-library-track {
+  display: grid;
+  grid-auto-columns: minmax(210px, 1fr);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-color: #575b57 #181a18;
+}
+.inline-library-module {
+  min-width: 0;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-right: 1px solid #353835;
+  scroll-snap-align: start;
+}
+.inline-library-module:last-child { border-right: 0; }
+.inline-library-module h3 { margin-top: 6px; color: #f2eee7; font-size: 19px; font-weight: 650; letter-spacing: -.025em; }
+.inline-library-module dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.inline-library-module dl div { min-width: 0; }
+.inline-library-module dt { color: #858984; font-size: 10px; }
+.inline-library-module dd { margin-top: 4px; color: #d8d5ce; font-size: 12px; white-space: nowrap; }
+.inline-library-module footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid #333633; }
+.inline-library-module footer > span { color: #91948f; font-size: 11px; }
+.inline-library-module footer .fui-Button { flex: 0 0 auto; min-height: 36px; }
+.inline-library-limit { padding: 12px 18px; border-top: 1px solid #353835; color: #efb0a2; font-size: 13px; }
 .search-empty { padding: 28px 4px; }
 .detail-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 16px; padding: 8px 0 24px; }
 .detail-specs dt { color: var(--rw-muted); font-size: 14px; }
@@ -1038,6 +1088,10 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
 @media (max-width: 700px) {
   .undo-notice { right: 16px; bottom: 16px; left: 16px; justify-content: flex-end; }
   .undo-notice span { margin-right: auto; }
+  .inline-module-library { margin: 0 16px 20px; }
+  .inline-library-header { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 15px; }
+  .inline-library-header .library-search { grid-column: 1 / -1; grid-row: 2; }
+  .inline-library-track { grid-auto-columns: minmax(220px, 82vw); }
   .fluent-root .workspace { padding: 22px 16px 48px; }
   .playground-command { padding-bottom: 20px; }
   .playground-command h1 { font-size: clamp(35px, 11vw, 48px); }
