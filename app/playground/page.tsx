@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import {
   Badge, Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface,
   DialogTitle, Field, FluentProvider, SearchBox, Select, Tab, TabList, Textarea,
-  Tooltip, SSRProvider, webDarkTheme, type Theme,
+  SSRProvider, webDarkTheme, type Theme,
 } from "@fluentui/react-components";
 import {
   Add24Regular, ArrowRight20Regular, ArrowUpRight20Regular, CheckmarkCircle20Regular,
@@ -54,6 +54,7 @@ export default function PlaygroundPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [removedModule, setRemovedModule] = useState<{ module: RackModule; index: number } | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const [draftStored, setDraftStored] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
@@ -124,6 +125,12 @@ export default function PlaygroundPage() {
   }, [loading]);
 
   useEffect(() => {
+    if (!removedModule) return;
+    const timer = window.setTimeout(() => setRemovedModule(null), 10000);
+    return () => window.clearTimeout(timer);
+  }, [removedModule]);
+
+  useEffect(() => {
     if (!conversation.length && !loading) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     conversationEndRef.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "nearest" });
@@ -132,16 +139,32 @@ export default function PlaygroundPage() {
   function add(module: RackModule) {
     if (moduleIds.length >= 32) return;
     setModuleIds((current) => [...current, module.id]);
+    setRemovedModule(null);
     setNotice(module.name + " added to Row A.");
     setLibraryOpen(false);
     setError("");
   }
 
   function remove(index: number) {
-    setNotice(plan.modules[index].name + " removed from Row A.");
+    const removedItem = plan.modules[index];
+    if (!removedItem) return;
+    setNotice(removedItem.name + " removed from Row A.");
     setModuleIds((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setRemovedModule({ module: removedItem, index });
     setDetailIndex(null);
     setError("");
+  }
+
+  function undoRemove() {
+    if (!removedModule) return;
+    const { module: removedItem, index } = removedModule;
+    setModuleIds((current) => {
+      const restored = [...current];
+      restored.splice(Math.min(index, restored.length), 0, removedItem.id);
+      return restored;
+    });
+    setNotice(removedItem.name + " restored to Row A.");
+    setRemovedModule(null);
   }
 
   function resetRack() {
@@ -154,6 +177,7 @@ export default function PlaygroundPage() {
     setView("planner");
     setLoading(false);
     setError("");
+    setRemovedModule(null);
     setNotice("The example rack has been restored.");
   }
 
@@ -213,6 +237,11 @@ export default function PlaygroundPage() {
         <div className="workspace-actions"><span className="catalog-label">{result ? result.mode === "sanity" && !stale ? "Live evidence retrieved" : "Catalog-only result" : "Ready to check"}</span><Button appearance="subtle" size="small" onClick={resetRack}>Reset <span className="reset-detail">example</span></Button></div>
       </div>
       <div className="live-notice" role="status">{notice}</div>
+      {removedModule && <div className="undo-notice" role="status">
+        <span><strong>{removedModule.module.name}</strong> removed</span>
+        <Button appearance="subtle" size="small" onClick={undoRemove}>Undo</Button>
+        <Button appearance="subtle" size="small" icon={<Dismiss20Regular />} aria-label="Dismiss removal message" onClick={() => setRemovedModule(null)} />
+      </div>}
 
       {view === "planner" && <div className="planner-layout" role="tabpanel" aria-labelledby="planner-tab">
         <div className="rack-column">
@@ -237,7 +266,7 @@ export default function PlaygroundPage() {
                   <div className="rack-module-label"><span>{String(index + 1).padStart(2, "0")}</span><small>{module.hp} HP</small></div>
                   <div><h3>{module.name}</h3><p>{module.maker}</p></div>
                   <dl><div><dt>Depth</dt><dd>{module.depthMm} mm</dd></div><div><dt>+12V</dt><dd>{module.plus12Ma} mA</dd></div></dl>
-                  <div className="rack-module-actions"><Button appearance="subtle" size="small" onClick={() => setDetailIndex(index)} aria-label={"Specifications and source for " + module.name}>Specs</Button><Tooltip content={"Remove " + module.name} relationship="label"><Button appearance="subtle" size="small" icon={<Delete20Regular />} aria-label={"Remove " + module.name} onClick={() => remove(index)} /></Tooltip></div>
+                  <div className="rack-module-actions"><Button appearance="subtle" size="small" type="button" onClick={() => setDetailIndex(index)} aria-label={"Specifications and source for " + module.name}>Specs</Button><Button className="rack-remove-button" appearance="subtle" size="small" type="button" icon={<Delete20Regular />} title={"Remove " + module.name} aria-label={"Remove " + module.name} onClick={() => remove(index)} /></div>
                 </article>)}
                 {available > 0 && <div className="rack-free-bay" style={{ "--module-hp": available } as CSSProperties}><span>{available} HP free</span></div>}
               </div>
