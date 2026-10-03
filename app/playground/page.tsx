@@ -35,6 +35,12 @@ const DEFAULT_QUESTION = "Does this row have enough space and power?";
 const THINKING_STAGES = ["Checking rack limits", "Reading Sanity entries", "Comparing module variants", "Preparing a grounded answer"];
 const propertyLabels = { width: "Width", depth: "Depth", plus12: "+12V draw", minus12: "-12V draw", plus5: "+5V draw", compatibility: "Compatibility", other: "Other claim" } as const;
 
+function cooldownLabel(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return minutes ? `${minutes}:${String(remainder).padStart(2, "0")}` : `${remainder}s`;
+}
+
 export default function PlaygroundPage() {
   const [moduleIds, setModuleIds] = useState<string[]>(DEFAULT_MODULE_IDS);
   const [headroom, setHeadroom] = useState(0.2);
@@ -52,6 +58,7 @@ export default function PlaygroundPage() {
   const [pendingQuestion, setPendingQuestion] = useState("");
   const [thinkingStage, setThinkingStage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [removedModule, setRemovedModule] = useState<{ module: RackModule; index: number } | null>(null);
@@ -125,6 +132,12 @@ export default function PlaygroundPage() {
   }, [loading]);
 
   useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const interval = window.setInterval(() => setCooldownSeconds((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearInterval(interval);
+  }, [cooldownSeconds]);
+
+  useEffect(() => {
     if (!removedModule) return;
     const timer = window.setTimeout(() => setRemovedModule(null), 10000);
     return () => window.clearTimeout(timer);
@@ -182,7 +195,7 @@ export default function PlaygroundPage() {
 
   async function ask(event: FormEvent) {
     event.preventDefault();
-    if (loading || !moduleIds.length || !question.trim()) return;
+    if (loading || cooldownSeconds > 0 || !moduleIds.length || !question.trim()) return;
     const askedQuestion = question.trim();
     requestRef.current?.abort();
     const controller = new AbortController();
@@ -194,7 +207,11 @@ export default function PlaygroundPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: askedQuestion, moduleIds, headroom }), signal: controller.signal,
       });
-      const payload = await response.json() as PlanResult & { error?: string };
+      const payload = await response.json() as PlanResult & { error?: string; code?: string; retryAfter?: number };
+      if (response.status === 429) {
+        const retryAfter = Math.max(1, Number(payload.retryAfter || response.headers.get("Retry-After") || 60));
+        setCooldownSeconds(retryAfter);
+      }
       if (!response.ok) throw new Error(payload.error || "The check could not be completed.");
       setResult(payload);
       setConversation((current) => [...current, { question: askedQuestion, result: payload }].slice(-8));
@@ -351,8 +368,9 @@ export default function PlaygroundPage() {
                     {[0, 0.1, 0.2, 0.3, 0.5].map((reserve) => <option key={reserve} value={reserve}>{Math.round(reserve * 100)}%</option>)}
                   </Select>
                 </Field>
-                <Button appearance="primary" type="submit" disabled={loading || !moduleIds.length || !question.trim()} icon={<ArrowRight20Regular />} iconPosition="after">{loading ? "Checking" : "Ask Rackwise"}</Button>
+                <Button appearance="primary" type="submit" disabled={loading || cooldownSeconds > 0 || !moduleIds.length || !question.trim()} icon={<ArrowRight20Regular />} iconPosition="after">{loading ? "Checking" : cooldownSeconds > 0 ? `Try again in ${cooldownLabel(cooldownSeconds)}` : "Ask Rackwise"}</Button>
               </div>
+              {cooldownSeconds > 0 && <p className="composer-cooldown" role="status">The live evidence check is cooling down. You can keep editing the rack while you wait.</p>}
               {error && <div className="feedback error-feedback" role="alert">{error}</div>}
             </form>
           </section>

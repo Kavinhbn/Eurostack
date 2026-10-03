@@ -50,28 +50,34 @@ test("successful API responses expose operational request metadata", async () =>
   }));
   assert.equal(response.status, 200);
   assert.match(response.headers.get("x-request-id") || "", /^[0-9a-f-]{36}$/);
+  assert.match(response.headers.get("set-cookie") || "", /^rackwise_device=[0-9a-f-]{36};/);
   assert.match(response.headers.get("server-timing") || "", /^total;dur=/);
   const payload = await response.json() as { calculation: { fits: boolean }; mode: string };
   assert.equal(payload.calculation.fits, true);
   assert.equal(payload.mode, "catalog");
 });
 
-test("planning endpoint enforces its bounded local request limit", async () => {
-  const previous = process.env.RACKWISE_RATE_LIMIT_PER_MINUTE;
-  process.env.RACKWISE_RATE_LIMIT_PER_MINUTE = "5";
+test("planning endpoint enforces a per-device request limit", async () => {
+  const previous = process.env.RACKWISE_DEVICE_RATE_LIMIT;
+  process.env.RACKWISE_DEVICE_RATE_LIMIT = "3";
   try {
     let response: Response | undefined;
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 4; index += 1) {
       response = await handlePlanRequest(new Request("http://localhost/api/plan", {
-        method: "POST", headers: { "Content-Type": "application/json", "cf-connecting-ip": "rate-limit-test" }, body: "{}",
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: "rackwise_device=00000000-0000-4000-8000-000000000001" },
+        body: JSON.stringify({ question: "Does it fit?", moduleIds: ["maths"], headroom: 0.2 }),
       }));
     }
     assert.equal(response?.status, 429);
     assert.equal(response?.headers.get("ratelimit-remaining"), "0");
     assert.ok(Number(response?.headers.get("retry-after")) >= 1);
+    const payload = await response?.json() as { code: string; retryAfter: number };
+    assert.equal(payload.code, "RATE_LIMITED");
+    assert.ok(payload.retryAfter >= 1);
   } finally {
-    if (previous === undefined) delete process.env.RACKWISE_RATE_LIMIT_PER_MINUTE;
-    else process.env.RACKWISE_RATE_LIMIT_PER_MINUTE = previous;
+    if (previous === undefined) delete process.env.RACKWISE_DEVICE_RATE_LIMIT;
+    else process.env.RACKWISE_DEVICE_RATE_LIMIT = previous;
   }
 });
 

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CATALOG, CATALOG_VERSION, CASE, calculatePlan } from "./catalog.ts";
 import { connectionStatus } from "./configuration.ts";
 import type { PlanInput, PlanResult, TraceStep } from "./contracts.ts";
-import { checkRateLimit, requestId, responseHeaders } from "./http.ts";
+import { beginDeviceRequest, checkRateLimit, endDeviceRequest, requestId, responseHeaders } from "./http.ts";
 import { observed, traced } from "./langfuse.ts";
 import { combineEvidenceClaims, createEvidenceAssessment, extractStructuredClaims, type CatalogFact, type CoverageTarget } from "./evidence.ts";
 import { synthesizeAssessment } from "./model.ts";
@@ -137,14 +137,7 @@ export async function runPlan(input: PlanInput): Promise<PlanResult> {
 export async function handlePlanRequest(request: Request) {
   const id = requestId();
   const started = performance.now();
-  const rate = checkRateLimit(request);
-  const rateHeaders = {
-    "RateLimit-Limit": String(rate.limit),
-    "RateLimit-Remaining": String(rate.remaining),
-    ...(rate.allowed ? {} : { "Retry-After": String(rate.retryAfter) }),
-  };
-  const headers = responseHeaders(id, rateHeaders);
-  if (!rate.allowed) return Response.json({ error: "Too many checks. Try again shortly.", code: "RATE_LIMITED", requestId: id }, { status: 429, headers });
+  const headers = responseHeaders(id);
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "Cross-origin requests are not allowed.", code: "ORIGIN_REJECTED", requestId: id }, { status: 403, headers });
   if (!request.headers.get("content-type")?.includes("application/json")) return Response.json({ error: "Send a JSON request.", code: "UNSUPPORTED_MEDIA_TYPE", requestId: id }, { status: 415, headers });
@@ -168,10 +161,21 @@ export async function handlePlanRequest(request: Request) {
   } catch { return Response.json({ error: "The request must contain valid JSON.", code: "INVALID_JSON", requestId: id }, { status: 400, headers }); }
   const parsed = planSchema.safeParse(body);
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0].message, code: "INVALID_PLAN", requestId: id }, { status: 400, headers });
+  const rate = checkRateLimit(request);
+  const rateHeaders = {
+    "RateLimit-Limit": String(rate.limit),
+    "RateLimit-Remaining": String(rate.remaining),
+    "RateLimit-Reset": String(rate.resetAfter),
+    ...(rate.setCookie ? { "Set-Cookie": rate.setCookie } : {}),
+    ...(rate.allowed ? {} : { "Retry-After": String(rate.retryAfter) }),
+  };
+  const guardedHeaders = responseHeaders(id, rateHeaders);
+  if (!rate.allowed) return Response.json({ error: "This device has reached the demo limit. Try again when the timer ends.", code: "RATE_LIMITED", retryAfter: rate.retryAfter, requestId: id }, { status: 429, headers: guardedHeaders });
+  if (!beginDeviceRequest(rate.deviceId)) return Response.json({ error: "A Rackwise check is already running on this device.", code: "REQUEST_IN_PROGRESS", retryAfter: 5, requestId: id }, { status: 429, headers: responseHeaders(id, { ...rateHeaders, "Retry-After": "5" }) });
   try {
     const result = await runPlan(parsed.data);
     return Response.json(result, { headers: responseHeaders(id, { ...rateHeaders, "Server-Timing": "total;dur=" + (performance.now() - started).toFixed(1) }) });
   } catch {
-    return Response.json({ error: "The check could not be completed. Please try again.", code: "PLAN_FAILED", requestId: id }, { status: 500, headers });
-  }
+    return Response.json({ error: "The check could not be completed. Please try again.", code: "PLAN_FAILED", requestId: id }, { status: 500, headers: guardedHeaders });
+  } finally { endDeviceRequest(rate.deviceId); }
 }
