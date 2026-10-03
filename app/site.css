@@ -1,0 +1,6 @@
+/*
+ * Stable global stylesheet entry point.
+ * Keeping this wrapper separate forces deployment platforms to rebuild the
+ * complete design stylesheet whenever the application shell changes.
+ */
+@import "./globals.css";
