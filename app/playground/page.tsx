@@ -435,7 +435,7 @@ export default function PlaygroundPage() {
         <DialogTitle>Service status</DialogTitle>
         <DialogContent><p className="dialog-description">Live health checks for evidence retrieval, agent responses and request tracing.</p>
           {connectionError ? <div className="feedback error-feedback" role="alert">Service status could not be read. <Button appearance="subtle" onClick={() => void refreshConnections()}>Retry</Button></div> :
-          <div className="connection-list">{([["sanity", "Sanity Context", "Source-backed Knowledge Base retrieval"], ["model", "Answer model", "Grounded response generation"], ["langfuse", "Langfuse", "Request tracing and evaluation"]] as const).map(([key, title, description]) => {
+          <div className="connection-list">{([["sanity", "Sanity Context", "Source-backed Knowledge Base retrieval"], ["model", "Answer model", "Grounded response generation"]] as const).map(([key, title, description]) => {
             const check = connectionChecks?.[key];
             const label = check ? check.state === "ready" ? "Ready" : check.state === "unreachable" ? "Unavailable" : check.state === "configured" ? "Configured" : "Not configured" : connections ? connections[key] ? "Configured" : "Not configured" : "Checking…";
             return <div key={key}><div><h3>{title}</h3><p>{description}{check?.latencyMs !== undefined ? ` · ${check.latencyMs} ms` : ""}</p></div><Badge appearance="outline" color={check?.state === "ready" ? "success" : "warning"}>{label}</Badge></div>;
