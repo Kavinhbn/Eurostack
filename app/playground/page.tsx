@@ -438,7 +438,7 @@ export default function PlaygroundPage() {
           <div className="connection-list">{([["sanity", "Sanity Context", "Source-backed Knowledge Base retrieval"], ["model", "Answer model", "Grounded response generation"], ["langfuse", "Langfuse", "Request tracing and evaluation"]] as const).map(([key, title, description]) => {
             const check = connectionChecks?.[key];
             const label = check ? check.state === "ready" ? "Ready" : check.state === "unreachable" ? "Unavailable" : check.state === "configured" ? "Configured" : "Not configured" : connections ? connections[key] ? "Configured" : "Not configured" : "Checking…";
-            return <div key={key}><div><h3>{title}</h3><p>{check?.detail || description}{check?.latencyMs !== undefined ? ` · ${check.latencyMs} ms` : ""}</p></div><Badge appearance="outline" color={check?.state === "ready" ? "success" : "warning"}>{label}</Badge></div>;
+            return <div key={key}><div><h3>{title}</h3><p>{description}{check?.latencyMs !== undefined ? ` · ${check.latencyMs} ms` : ""}</p></div><Badge appearance="outline" color={check?.state === "ready" ? "success" : "warning"}>{label}</Badge></div>;
           })}</div>}
         </DialogContent><DialogActions><Button appearance="secondary" onClick={() => setConnectionsOpen(false)}>Done</Button></DialogActions>
       </DialogBody></DialogSurface>
