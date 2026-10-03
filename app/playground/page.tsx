@@ -219,7 +219,7 @@ export default function PlaygroundPage() {
         <div className="workspace-signals">
           <button className={"connection-signal " + (sanityState === "ready" ? "is-ready" : "is-muted")} type="button" onClick={() => setConnectionsOpen(true)}>
             <span aria-hidden="true" />
-            <span><strong>{sanityLabel}</strong><small>View connection details</small></span>
+            <span><strong>{sanityLabel}</strong><small>View service status</small></span>
           </button>
           <dl aria-label="Workspace capabilities">
             <div><dt>Calculation</dt><dd>Deterministic</dd></div>
@@ -432,15 +432,14 @@ export default function PlaygroundPage() {
 
     <Dialog open={connectionsOpen} onOpenChange={(_, data) => setConnectionsOpen(data.open)}>
       <DialogSurface className="app-dialog"><DialogBody>
-        <DialogTitle>Connections</DialogTitle>
-        <DialogContent><p className="dialog-description">Configuration on this app’s server. Configured does not mean connectivity has been verified.</p>
-          {connectionError ? <div className="feedback error-feedback" role="alert">Connection settings could not be read. <Button appearance="subtle" onClick={() => void refreshConnections()}>Retry</Button></div> :
-          <div className="connection-list">{([["sanity", "Sanity Context", "Knowledge Base endpoint and organization token"], ["model", "Answer model", "Local Ollama or an OpenAI-compatible endpoint"], ["langfuse", "Self-hosted Langfuse", "Your instance URL and project keys; no cloud default"]] as const).map(([key, title, description]) => {
+        <DialogTitle>Service status</DialogTitle>
+        <DialogContent><p className="dialog-description">Live health checks for evidence retrieval, agent responses and request tracing.</p>
+          {connectionError ? <div className="feedback error-feedback" role="alert">Service status could not be read. <Button appearance="subtle" onClick={() => void refreshConnections()}>Retry</Button></div> :
+          <div className="connection-list">{([["sanity", "Sanity Context", "Source-backed Knowledge Base retrieval"], ["model", "Answer model", "Grounded response generation"], ["langfuse", "Langfuse", "Request tracing and evaluation"]] as const).map(([key, title, description]) => {
             const check = connectionChecks?.[key];
             const label = check ? check.state === "ready" ? "Ready" : check.state === "unreachable" ? "Unavailable" : check.state === "configured" ? "Configured" : "Not configured" : connections ? connections[key] ? "Configured" : "Not configured" : "Checking…";
             return <div key={key}><div><h3>{title}</h3><p>{check?.detail || description}{check?.latencyMs !== undefined ? ` · ${check.latencyMs} ms` : ""}</p></div><Badge appearance="outline" color={check?.state === "ready" ? "success" : "warning"}>{label}</Badge></div>;
           })}</div>}
-          <p className="setup-note">Set these in the server’s .env.local file and restart the app. Secrets stay on the server. Numerical checks work without these connections.</p>
         </DialogContent><DialogActions><Button appearance="secondary" onClick={() => setConnectionsOpen(false)}>Done</Button></DialogActions>
       </DialogBody></DialogSurface>
     </Dialog>
