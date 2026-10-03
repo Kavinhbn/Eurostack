@@ -42,7 +42,7 @@ export default function LandingPage() {
             </Link>
 
             <a className="landing-secondary-cta" href="#method">
-              <span>How Rackwise reaches an answer</span>
+              <span>See how Rackwise decides</span>
               <small>03 steps</small>
               <ArrowRight20Regular />
             </a>

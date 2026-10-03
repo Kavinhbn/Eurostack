@@ -848,7 +848,18 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
   .landing-art-stage { min-height: max(760px, calc(100dvh - 64px)); display: block; padding: 0; }
   .landing-headline { position: absolute; top: 38px; right: 20px; left: 20px; }
   .landing-headline h1 { font-size: clamp(64px, 15vw, 84px); line-height: .86; }
-  .landing-secondary-cta { position: absolute; top: 370px; right: 20px; left: 20px; width: auto; max-width: 520px; margin: 0; }
+  .landing-secondary-cta {
+    position: absolute;
+    top: 358px;
+    right: auto;
+    left: 20px;
+    width: min(390px, calc(100% - 40px));
+    min-height: 56px;
+    padding: 0 14px 0 16px;
+    border: 1px solid #575650;
+    background: rgb(10 10 9 / .94);
+  }
+  .landing-secondary-cta::before { left: -1px; height: 100%; }
   .landing-art { position: absolute; top: auto; bottom: 0; width: 100%; height: 56%; margin: 0; object-fit: cover; object-position: 54% bottom; }
   .landing-primary-cta { position: absolute; right: 20px; bottom: 30px; min-width: 220px; min-height: 58px; margin: 0; }
   .landing-method { width: calc(100% - 40px); padding: 96px 0 104px; }
@@ -879,7 +890,7 @@ h2 { font-size: 20px; line-height: 1.35; letter-spacing: -.025em; font-weight: 6
   .landing-nav-cta svg { margin: 0; }
   .landing-headline { top: 32px; left: 16px; }
   .landing-headline h1 { font-size: clamp(62px, 18vw, 76px); }
-  .landing-secondary-cta { top: 355px; right: 16px; left: 16px; min-height: 60px; }
+  .landing-secondary-cta { top: 342px; right: auto; left: 16px; width: min(340px, calc(100% - 32px)); min-height: 54px; font-size: 14px; }
   .landing-secondary-cta small { display: none; }
   .landing-art { height: 53%; object-position: 55% bottom; }
   .landing-primary-cta { right: 16px; bottom: 22px; min-width: 202px; min-height: 54px; font-size: 15px; }
