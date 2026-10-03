@@ -48,3 +48,6 @@ next-env.d.ts
 # Private planning and local hosting metadata.
 /docs/
 /.openai/
+
+# Local generated design references; production exports live in /public.
+/app/Codex Image *.png
