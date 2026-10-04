@@ -48,6 +48,7 @@ export default function PlaygroundPage() {
   const [view, setView] = useState<View>("planner");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [sessionAddedIds, setSessionAddedIds] = useState<string[]>([]);
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
   const [connections, setConnections] = useState<Connections | null>(null);
@@ -71,6 +72,13 @@ export default function PlaygroundPage() {
   const filtered = CATALOG.filter((item) => (item.name + " " + item.maker + " " + item.family).toLowerCase().includes(query.toLowerCase()));
   const stale = result !== null && (JSON.stringify(result.input.moduleIds) !== JSON.stringify(moduleIds) || result.input.headroom !== headroom);
   const available = CASE.hp - plan.totals.hp;
+  const sessionAdditionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const id of sessionAddedIds) counts.set(id, (counts.get(id) || 0) + 1);
+    return counts;
+  }, [sessionAddedIds]);
+  const latestTurn = conversation.at(-1);
+  const previousTurns = conversation.slice(0, -1);
   const sanityState = connectionChecks?.sanity?.state;
   const sanityLabel = connectionError ? "Status unavailable" : sanityState === "ready" ? "Sanity connected" : sanityState === "unreachable" ? "Sanity unavailable" : sanityState === "configured" ? "Sanity configured" : connections ? connections.sanity ? "Sanity configured" : "Sanity not configured" : "Checking Sanity";
   const claimGroups = useMemo(() => {
@@ -109,8 +117,9 @@ export default function PlaygroundPage() {
     }, 0);
     const shortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault(); setLibraryOpen(true);
+        event.preventDefault(); setSessionAddedIds([]); setLibraryOpen(true);
       }
+      if (event.key === "Escape") { setSessionAddedIds([]); setLibraryOpen(false); }
     };
     window.addEventListener("keydown", shortcut);
     return () => { window.clearTimeout(connectionTimer); window.clearTimeout(draftTimer); window.removeEventListener("keydown", shortcut); requestRef.current?.abort(); };
@@ -152,6 +161,7 @@ export default function PlaygroundPage() {
   function add(module: RackModule) {
     if (moduleIds.length >= 32) return;
     setModuleIds((current) => [...current, module.id]);
+    setSessionAddedIds((current) => [...current, module.id]);
     setRemovedModule(null);
     setNotice(module.name + " added to Row A.");
     setError("");
@@ -190,6 +200,7 @@ export default function PlaygroundPage() {
     setLoading(false);
     setError("");
     setRemovedModule(null);
+    setSessionAddedIds([]);
     setNotice("The example rack has been restored.");
   }
 
@@ -269,14 +280,13 @@ export default function PlaygroundPage() {
           <section className="rack-panel" aria-labelledby="row-title">
             <div className="panel-heading">
               <div className="row-title"><span className="row-symbol" aria-hidden="true"><Library24Regular /></span><div><h2 id="row-title">Row A</h2><p>3U Eurorack <span>/</span> {CASE.hp} HP</p></div></div>
-              <Button appearance="secondary" icon={libraryOpen ? <Dismiss20Regular /> : <Add24Regular />} onClick={() => setLibraryOpen((current) => !current)} aria-expanded={libraryOpen} aria-controls="inline-module-library">{libraryOpen ? "Close library" : "Add module"}</Button>
+              <Button appearance="secondary" icon={libraryOpen ? <Dismiss20Regular /> : <Add24Regular />} onClick={() => { setSessionAddedIds([]); setLibraryOpen((current) => !current); }} aria-expanded={libraryOpen} aria-controls="inline-module-library">{libraryOpen ? "Close library" : "Add module"}</Button>
             </div>
 
             {libraryOpen && <section id="inline-module-library" className="inline-module-library" aria-labelledby="module-library-title">
               <header className="inline-library-header">
                 <div className="inline-library-title"><Library24Regular aria-hidden="true" /><div><h3 id="module-library-title">Browse modules</h3><p>Add modules without leaving your rack.</p></div></div>
                 <SearchBox className="library-search" aria-label="Search modules" value={query} onChange={(_, data) => setQuery(data.value)} placeholder="Search name, maker or function" />
-                <Button appearance="subtle" size="small" icon={<Dismiss20Regular />} aria-label="Close module library" onClick={() => setLibraryOpen(false)} />
               </header>
               {filtered.length ? <div className="inline-library-track">
                 {filtered.map((module) => {
@@ -288,6 +298,18 @@ export default function PlaygroundPage() {
                   </article>;
                 })}
               </div> : <div className="search-empty"><h3>No matching modules</h3><p>Try another name, manufacturer or function.</p><Button appearance="subtle" onClick={() => setQuery("")}>Clear search</Button></div>}
+              <details className="library-row-preview" open>
+                <summary><span>Current row</span><strong>{plan.modules.length} {plan.modules.length === 1 ? "module" : "modules"} · {plan.totals.hp}/{CASE.hp} HP</strong></summary>
+                <div className="current-mini-rack" role="img" aria-label={plan.modules.map((module) => module.name + ", " + module.hp + " HP").join("; ") + `. ${Math.max(0, available)} HP free.`}>
+                  {plan.modules.map((module, index) => {
+                    const occurrenceFromEnd = plan.modules.slice(index).filter((item) => item.id === module.id).length;
+                    const addedThisSession = occurrenceFromEnd <= (sessionAdditionCounts.get(module.id) || 0);
+                    return <div key={module.id + "-preview-" + index} className={addedThisSession ? "was-just-added" : ""} style={{ flexGrow: module.hp }} title={module.name + " · " + module.hp + " HP"}><strong>{module.name}</strong><span>{module.hp} HP</span></div>;
+                  })}
+                  {available > 0 && <div className="mini-rack-free" style={{ flexGrow: available }}><span>{available} HP free</span></div>}
+                </div>
+                <p>{sessionAddedIds.length ? `${sessionAddedIds.length} ${sessionAddedIds.length === 1 ? "module" : "modules"} added in this session.` : "Modules added while this library is open will be highlighted orange."}</p>
+              </details>
               {moduleIds.length >= 32 && <p className="inline-library-limit" role="status">The 32-module planning limit has been reached.</p>}
             </section>}
 
@@ -348,7 +370,17 @@ export default function PlaygroundPage() {
                 </div>
               </div>}
 
-              {conversation.map((turn) => {
+              {previousTurns.length > 0 && <details className="conversation-history">
+                <summary>{previousTurns.length} earlier {previousTurns.length === 1 ? "check" : "checks"}</summary>
+                <div className="conversation-history-list">
+                  {previousTurns.map((turn) => <button type="button" key={turn.result.id} onClick={() => { setResult(turn.result); setView("evidence"); }}>
+                    <span>{turn.question}</span>
+                    <small>{decisionLabel(turn.result.assessment.decision.status)} · {turn.result.assessment.claims.length} claims</small>
+                  </button>)}
+                </div>
+              </details>}
+
+              {latestTurn && [latestTurn].map((turn) => {
                 const turnIsStale = JSON.stringify(turn.result.input.moduleIds) !== JSON.stringify(moduleIds) || turn.result.input.headroom !== headroom;
                 return <div className="conversation-turn" key={turn.result.id}>
                 <div className="user-message"><p>{turn.question}</p></div>
@@ -381,12 +413,6 @@ export default function PlaygroundPage() {
           </section>
         </aside>
       </div>}
-
-      {view === "planner" && result && <section className={"decision-dock " + result.assessment.decision.status} aria-label="Latest evidence decision">
-        <div className="decision-dock-copy"><span>Latest decision</span><strong>{result.assessment.decision.summary}</strong><p>{result.assessment.decision.basis}</p></div>
-        <dl><div><dt>Fit</dt><dd>{result.calculation.fits ? "Pass" : "Review"}</dd></div><div><dt>Coverage</dt><dd>{result.assessment.coverage.verifiedModules}/{result.assessment.coverage.totalModules}</dd></div><div><dt>Claims</dt><dd>{result.assessment.claims.length}</dd></div><div><dt>Evidence</dt><dd>{decisionLabel(result.assessment.decision.status)}</dd></div></dl>
-        <div><Button appearance="primary" onClick={() => setView("evidence")}>Review sources</Button><Button appearance="subtle" onClick={() => setView("trace")}>View trace</Button></div>
-      </section>}
 
       {view === "evidence" && <section className="secondary-view" role="tabpanel" aria-labelledby="evidence-tab">
         <div className="secondary-heading"><h2>Evidence review</h2><p>Compare retrieved claims with the values used by the planner. Catalog snapshot: {CATALOG_VERSION}.</p></div>
